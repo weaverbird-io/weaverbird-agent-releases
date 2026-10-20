@@ -1,0 +1,39 @@
+# Our agent on a lab machine: runs as wbsim (no sudo), dials out to Weaverbird,
+# and does only the fixed simulator verbs it is sent, signed.
+[Unit]
+Description=Weaverbird lab agent
+Documentation=https://github.com/weaverbird-io/weaverbird-mvp-monorepo/tree/master/apps/weaverbird-agent
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=wbsim
+Group=wbsim
+Environment=WEAVERBIRD_AGENT_DIR=/var/lib/weaverbird-agent
+# The guard rolls a failed self-update back (root-owned, so the agent can't
+# change it; runs as wbsim). bin/current is the build in use (addendum 2a).
+ExecStartPre=/usr/local/lib/weaverbird-agent/guard.sh
+ExecStart=/var/lib/weaverbird-agent/bin/current run
+Restart=always
+RestartSec=10
+
+# Hardening: it needs its own state, its home (the simulators' files and user
+# units) and the user manager's socket; nothing else.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/weaverbird-agent /home/wbsim /run/user
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+PrivateDevices=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target
